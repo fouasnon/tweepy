@@ -123,7 +123,7 @@ class Stream(object):
                     if self.listener.on_error(resp.status) is False:
                         break
                     error_counter += 1
-                    if status_code==420: # wait longer
+                    if resp.status == 420: # wait longer
                         sleep(min(self.retry_time, self.max_retry_time*2))
                     else:
                         sleep(min(self.retry_time, self.max_retry_time))
