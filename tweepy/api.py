@@ -7,7 +7,7 @@ import mimetypes
 
 from tweepy.binder import bind_api
 from tweepy.error import TweepError
-from tweepy.parsers import ModelParser, RawParser
+from tweepy.parsers import ModelParser
 from tweepy.utils import list_to_csv
 
 
@@ -30,13 +30,6 @@ class API(object):
         self.retry_delay = retry_delay
         self.retry_errors = retry_errors
         self.parser = parser or ModelParser()
-
-    """ statuses/public_timeline """
-    public_timeline = bind_api(
-        path = '/statuses/public_timeline.json',
-        payload_type = 'status', payload_list = True,
-        allowed_param = []
-    )
 
     """ statuses/home_timeline """
     home_timeline = bind_api(
@@ -68,6 +61,14 @@ class API(object):
         payload_type = 'status', payload_list = True,
         allowed_param = ['since_id', 'max_id', 'count', 'page'],
         require_auth = True
+    )
+
+    """/statuses/retweeted_by_user.format"""
+    retweeted_by_user = bind_api(
+        path = '/statuses/retweeted_by_user.json',
+        payload_type = 'status', payload_list = True,
+        allowed_param = ['screen_name', 'id', 'count', 'since_id',
+                            'max_id', 'page', 'include_entities']
     )
 
     """/statuses/:id/retweeted_by.format"""
@@ -175,7 +176,6 @@ class API(object):
         path = '/users/lookup.json',
         payload_type = 'user', payload_list = True,
         allowed_param = ['user_id', 'screen_name'],
-        require_auth = True
     )
 
     """ Get the authenticated user """
@@ -279,6 +279,19 @@ class API(object):
                           'target_id', 'target_screen_name']
     )
 
+
+    """ Perform bulk look up of friendships from user ID or screenname """
+    def lookup_friendships(self, user_ids=None, screen_names=None):
+	    return self._lookup_friendships(list_to_csv(user_ids), list_to_csv(screen_names))
+
+    _lookup_friendships = bind_api(
+        path = '/friendships/lookup.json',
+        payload_type = 'relationship', payload_list = True,
+        allowed_param = ['user_id', 'screen_name'],
+        require_auth = True
+    )
+
+
     """ friends/ids """
     friends_ids = bind_api(
         path = '/friends/ids.json',
@@ -308,13 +321,14 @@ class API(object):
     )
 
     """ account/verify_credentials """
-    def verify_credentials(self):
+    def verify_credentials(self, **kargs):
         try:
             return bind_api(
                 path = '/account/verify_credentials.json',
                 payload_type = 'user',
-                require_auth = True
-            )(self)
+                require_auth = True,
+                allowed_param = ['include_entities', 'skip_status'],
+            )(self, **kargs)
         except TweepError, e:
             if e.response and e.response.status == 401:
                 return False
@@ -381,7 +395,7 @@ class API(object):
     favorites = bind_api(
         path = '/favorites.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['id', 'page']
+        allowed_param = ['id', 'max_id', 'page']
     )
 
     """ favorites/create """
@@ -727,7 +741,7 @@ class API(object):
         try:
             if os.path.getsize(filename) > (max_size * 1024):
                 raise TweepError('File is too big, must be less than 700kb.')
-        except os.error, e:
+        except os.error:
             raise TweepError('Unable to access file')
 
         # image must be gif, jpeg, or png
