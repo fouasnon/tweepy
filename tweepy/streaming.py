@@ -155,28 +155,28 @@ class Stream(object):
         if exception:
             raise
 
-    # def _read_gzip_loop(self, resp):
-    #     decompressor = zlib.decompressobj(16 + zlib.MAX_WBITS)
-    #     data = ''
-    #     lines = []
+    def _read_gzip_loop(self, resp):
+        decompressor = zlib.decompressobj(16 + zlib.MAX_WBITS)
+        data = ''
+        lines = []
 
-    #     while self.running:
-    #         if resp.isclosed():
-    #             break
+        while self.running:
+            if resp.isclosed():
+                break
 
-    #         buf = decompressor.decompress(resp.read(self.buffer_size))
-    #         for c in buf:
-    #             if c == '\n':
-    #                 lines.append(data.strip())
-    #                 data = ''
-    #             else:
-    #                 data += c
+            buf = decompressor.decompress(resp.read(self.buffer_size))
+            for c in buf:
+                if c == '\n':
+                    lines.append(data.strip())
+                    data = ''
+                else:
+                    data += c
 
-    #         if len(lines) > 0:
-    #             for line in lines:
-    #                 if self.listener.on_data(line) is False:
-    #                     self.running = False
-    #             del lines[:]
+            if len(lines) > 0:
+                for line in lines:
+                    if self.listener.on_data(line) is False:
+                        self.running = False
+                del lines[:]
 
     def _data(self, data):
         for d in [dt for dt in data.split('\n') if dt]:
